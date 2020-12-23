@@ -13,18 +13,21 @@ pipeline {
                 }
             }
         }
-        stage('Build') {
+        stage('Image Build') {
             steps {
-                echo 'Building....'
-                sh 'scp -r -i $(minikube ssh-key) ./*  docker@$(minikube ip):~/'
-                sh "minikube ssh 'docker build -t queue:${commit_id} ./'"
+                echo 'Building docker image.............'
+                sh "'docker build -t houssemtebai/queue:${commit_id} ./'"
                 echo 'build complete'
+                echo 'pushing docker image to dockerhub.............'
+                sh "'docker push houssemtebai/queue:${commit_id}'"
+                echo 'push complete'
             }
         }
         stage('Deploy') {
             steps {
                 echo 'Deploying to Kubernetes'
-                sh "sed -i -r 's|richardchesterwood/k8s-fleetman-queue:release2|webapp:${commit_id}|' workloads.yaml"
+                sh "sed -i -r 's|richardchesterwood/k8s-fleetman-queue:release2|houssemtebai/queue:${commit_id}|' workloads.yaml"
+                sh "kubectl config set current-context minikube"
                 sh 'kubectl get all'
                 sh 'kubectl apply -f .'
                 sh 'kubectl get all'
